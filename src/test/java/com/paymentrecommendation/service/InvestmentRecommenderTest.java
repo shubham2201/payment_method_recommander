@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import com.paymentrecommendation.service.impl.PaymentRecommenderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -30,6 +32,7 @@ class InvestmentRecommenderTest {
     @BeforeEach
     void setup() {
         //TODO: Setup paymentRecommender
+        paymentRecommender = new PaymentRecommenderImpl();
     }
 
     @Test

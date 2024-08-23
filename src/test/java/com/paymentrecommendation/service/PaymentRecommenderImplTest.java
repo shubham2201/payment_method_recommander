@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import com.paymentrecommendation.service.impl.PaymentRecommenderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import com.google.common.collect.Lists;
@@ -22,12 +24,13 @@ import com.paymentrecommendation.models.User;
 import com.paymentrecommendation.models.UserContext;
 import com.paymentrecommendation.models.UserPaymentInstrument;
 
-class CommerceRecommenderTest {
+class PaymentRecommenderImplTest {
     private PaymentRecommender paymentRecommender;
 
     @BeforeEach
     void setup() {
         //TODO: Setup paymentRecommender
+        paymentRecommender = new PaymentRecommenderImpl();
     }
 
     @Test

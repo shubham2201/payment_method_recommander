@@ -1,13 +1,16 @@
 package cred.com.paymentrecommendation.service.impl;
 
+import cred.com.paymentrecommendation.config.CommerceConfig;
+import cred.com.paymentrecommendation.config.CreditCardBillPaymentConfig;
+import cred.com.paymentrecommendation.config.InvestmentConfig;
+import cred.com.paymentrecommendation.config.LobConfig;
+import cred.com.paymentrecommendation.enums.LineOfBusiness;
 import cred.com.paymentrecommendation.models.PaymentInstrument;
 import cred.com.paymentrecommendation.comparator.PaymentInstrumentComparator;
 import cred.com.paymentrecommendation.enums.PaymentInstrumentType;
 import cred.com.paymentrecommendation.models.Cart;
 import cred.com.paymentrecommendation.models.User;
 import cred.com.paymentrecommendation.service.PaymentRecommender;
-import cred.com.paymentrecommendation.utils.PaymentConstants;
-import cred.com.paymentrecommendation.utils.PaymentPriority;
 import cred.com.paymentrecommendation.validators.PaymentValidator;
 import java.util.Comparator;
 import java.util.List;
@@ -20,12 +23,13 @@ public class PaymentRecommenderImpl implements PaymentRecommender {
     @Override
     public List<PaymentInstrument> recommendPaymentInstruments(User user, Cart cart) {
         PaymentValidator.validateLineOfBusiness(cart);
-        Map<PaymentInstrumentType, Integer> paymentInstrumentTypePriority = PaymentPriority.PAYMENT_INSTRUMENT_TYPE_PRIORITY.get(cart.getLineOfBusiness());
-        Double LIMIT = PaymentConstants.BUSINESS_LIMIT_MAP.get(cart.getLineOfBusiness());
-        if (Objects.nonNull(cart.getCartDetail()) && cart.getCartDetail().getCartAmount() > LIMIT) {
-            return List.of();
-        }
-        List<PaymentInstrumentType> eligiblePaymentTypeForBusiness = PaymentConstants.BUSINESS_TO_PAYMENT_TYPE_MAP.getOrDefault(cart.getLineOfBusiness(), List.of());
+        LobConfig lobConfig = getLobConfig(cart.getLineOfBusiness());
+        Map<PaymentInstrumentType, Integer> paymentInstrumentTypePriority = lobConfig.paymentMethodRelevance();
+        List<PaymentInstrumentType> eligiblePaymentTypeForBusiness = lobConfig.getEnabledPaymentMethods();
+        Map<PaymentInstrumentType, Double> limit = lobConfig.paymentMethodLimits();
+        eligiblePaymentTypeForBusiness = eligiblePaymentTypeForBusiness.stream().filter(pm ->
+                Objects.nonNull(cart.getCartDetail()) && Objects.nonNull(cart.getCartDetail().getCartAmount()) && limit.get(pm) >= cart.getCartDetail().getCartAmount()
+        ).collect(Collectors.toList());
         List<PaymentInstrument> fetchEligiblePaymentTypesForUser = fetchEligiblePaymentTypesForUser(user, eligiblePaymentTypeForBusiness);
         Comparator<PaymentInstrument> comparator = new PaymentInstrumentComparator(paymentInstrumentTypePriority);
         fetchEligiblePaymentTypesForUser.sort(comparator);
@@ -42,5 +46,14 @@ public class PaymentRecommenderImpl implements PaymentRecommender {
         return user.getUserPaymentInstrument().getPaymentInstruments().stream()
                 .filter(paymentInstrument -> eligiblePaymentTypeForUser.contains(paymentInstrument.getPaymentInstrumentType()))
                 .collect(Collectors.toList());
+    }
+
+    private LobConfig getLobConfig(LineOfBusiness lob) {
+        switch(lob) {
+            case CREDIT_CARD_BILL_PAYMENT: return new CreditCardBillPaymentConfig();
+            case COMMERCE: return new CommerceConfig();
+            case INVESTMENT: return new InvestmentConfig();
+            default: throw new RuntimeException("Invalid LOB");
+        }
     }
 }
